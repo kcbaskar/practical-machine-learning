@@ -1,2 +1,2 @@
 # practical-machine-learning
-Practical Machine Learning
+This is my project for the Johns Hopkins Practical Machine Learning course (offered via Coursera) in the Data Science specialization
