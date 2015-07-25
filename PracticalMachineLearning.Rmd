@@ -1,0 +1,90 @@
+---
+title: "Practical Machine Learning Project"
+author: "Krishnamurthy Baskar"
+date: "Saturday, July 25, 2015"
+output: html_document
+---
+
+#Synopsis
+In this project we required to predict what kind of exercise the sportsman doing depending on the data from accelerometers. Output variable named “classe” and can be a character from A to E such as below:
+
+* A: exactly according to the specification
+* B: throwing the elbows to the front
+* C: lifting the dumbbell only halfway
+* D: lowering the dumbbell only halfway
+* E: throwing the hips to the front
+
+
+#Libraries and init
+```{r}
+library(caret)
+set.seed(15040886)
+```
+
+#Load Data
+###load the data both from the provided training and test data provided by COURSERA. Some values contained a "#DIV/0!" that is to be replaced with an NA value.
+
+
+```{r}
+trainingRaw <- read.csv(file="pml-training.csv", header=TRUE, as.is = TRUE, stringsAsFactors = FALSE, sep=',', na.strings=c('NA','','#DIV/0!'))
+testingRaw <- read.csv(file="pml-testing.csv", header=TRUE, as.is = TRUE, stringsAsFactors = FALSE, sep=',', na.strings=c('NA','','#DIV/0!'))
+```
+
+#Tidy the data
+```{r}
+#Have a look at the data and decide the tidying
+# head(trainingRaw)
+
+##Use factors for Classe
+trainingRaw$classe <- as.factor(trainingRaw$classe)  
+
+## remove variables with more than 80% missing values
+nav <- sapply(colnames(trainingRaw), function(x) if(sum(is.na(trainingRaw[, x])) > 0.8*nrow(trainingRaw)){return(T)}else{return(F)})
+trainingRaw <- trainingRaw[, !nav]
+
+##Removing irrelevant attributes, first 6 columns from the dataset
+trainingRaw <- trainingRaw[,-c(1,6)]
+testingRaw <- testingRaw[,-c(1,6)]
+```
+
+
+#Partition data into training and test/Cross-validation sets
+
+###Lets divide data to 70% for training and 30% Cross-validation sets.
+
+```{r}
+inTraining  <- createDataPartition(trainingRaw$classe, p = 0.7, list = FALSE)
+training    <- trainingRaw[inTraining, ]
+testing     <- trainingRaw[-inTraining, ]
+```
+
+#Train model
+###Train model with random forest due to its highly accuracy rate. The model is build on a training set of 28 variables from the initial 160. Cross validation is used as train control method.
+
+```{r}
+modFit <- train(classe ~., method="rf", data=training, trControl=trainControl(method='cv'), number=5, allowParallel=TRUE )
+#save(modFit, file="modFit.RData")
+#load(file="modFit.RData", verbose=TRUE)
+```
+
+###Provide error reports for  test data set.
+```{r}
+#trainingPred <- predict(modFit, training)
+#confusionMatrix(trainingPred, training$classe)
+
+testingPred <- predict(modFit, testing)
+confusionMatrix(testingPred, testing$classe)
+```
+### this model gets 99.94% accuracy, which means excellent outcome. I also tried several other algorithms such as Logisitic, SMO, NaiveBayes etc., but the one above (Randome forest) performes better.
+
+
+##List of top important features
+```{r}
+varImp(modFit)
+```
+
+#Predict the 20 test cases
+```{r}
+testingPred <- predict(modFit, testingRaw)
+testingPred
+```
